@@ -140,3 +140,63 @@ select * from public.agg_dat_may union
 select * from public.agg_dat_jun union
 select * from public.agg_dat_jul) D
 DISTRIBUTED RANDOMLY
+
+
+--Funciona en Teradata, revisar si lo hace en otras bbdd
+
+ SELECT ADD_MONTHS(date,-1) dia_mesant
+,CAST(((ADD_MONTHS(DATE, -1)/100)*100+1) AS DATE) firtdia_mesant,
+       CAST(((ADD_MONTHS(DATE, 0)/100)*100+1) AS DATE)-1 lastdia_mesant;
+
+
+ SELECT ADD_MONTHS(date,-1)
+,CAST(((ADD_MONTHS(DATE, -1)/100)*100+1) AS DATE) FDo2MAGO,
+       CAST(((ADD_MONTHS(DATE, 0)/100)*100+1) AS DATE)-1 LDo2MAGO;
+
+
+--- para omitir los segundos
+--  ya que la line_recharge_tm viene como numeros de 6 digitos no quedamos con 4 y redondeamos los :00 finales asi tenemos las salida 
+--  tipo: 2016-03-13 01:18:00
+
+
+(line_recharge_dt||' '||substr(line_recharge_tm,1,5)||':00') as hora,
+
+
+where Line_Recharge_Dt between CURRENT_DATE- INTERVAL '1' YEAR and CURRENT_DATE
+where Line_Recharge_Dt between '2016-01-01' and CURRENT_DATE
+
+select extract (month from CURRENT_DATE)
+
+-- convertir string a integert y fecha
+select
+cast(substr(cast(periodo as varchar(10)),1,4) ||''|| substr(cast(periodo as varchar(10)),5,2) ||''|| '01' as integer) as fecha,
+cast(fecha as char(8)) as fecha1,
+cast(fecha1 as date format 'YYYYMMDD') as fecha2,
+CAST(((ADD_MONTHS(fecha2, -1)/100)*100+1) AS DATE)
+from ubd15.BI_PARQUE_PREPAGO_EVO_R
+
+
+
+-- espacio esquemas teradata
+
+SELECT tablename,sum(currentperm)/1024/1024 MB
+FROM dbc.allspace
+WHERE databasename='UBD15'
+GROUP BY 1
+ORDER BY 2 DESC;
+
+-- para desplazar la fila con datos previos
+
+
+SELECT Periodo as Periodo,
+cast('rec_mes_ant' as VARCHAR(20)) as concepto,
+sum(case when Estado in ('REC GANADOS','REC MANTENIDOS') then Q else null end) as valor,
+       MAX(valor) OVER (ORDER BY Periodo
+                       ROWS BETWEEN 1 PRECEDING
+                       AND 1 PRECEDING) ID_N_PREV, --previo
+       MAX(valor) OVER (ORDER BY Periodo
+                       ROWS BETWEEN 1 FOLLOWING
+                       AND 1 FOLLOWING) ID_N_POST -- anterior
+From ubd15.BI_PARQUE_PREPAGO_EVO_R1
+group by 1
+order by 1 desc
